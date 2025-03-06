@@ -1,0 +1,20 @@
+#Container_main{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+#Container_hud{
+    min-width: 40vw;
+    max-width: 60vw;
+}
+
+h1{
+    text-align: center;
+    margin: .5rem;
+}
+
+#timeOfDay{
+    text-align: center;
+    margin: .5rem;
+}
