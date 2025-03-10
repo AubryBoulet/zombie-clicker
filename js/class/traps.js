@@ -1,6 +1,7 @@
 import { monsterlist } from "../canvas_td.js";
 import { c, squareHeight, squareWidth } from "../canvas_td.js";
 import { canvasMouseX, canvasMouseY } from "../init.js";
+import { decTrapQte, ressources } from "../hud/main_hud.js";
 
 export class traps {
     constructor ({ position, damage, reloadTime, radius }){
@@ -32,15 +33,18 @@ export class traps {
     // Check if a monster is walking on the trap
     checkColision(){
         if (this.loaded == false) return;
-        monsterlist.forEach((elem) => {
-            if (elem.spawned == false) return;
-            if (Math.abs(elem.position.x - this.position.x) <= this.radius && Math.abs(elem.position.y - this.position.y) <= this.radius) {
-                elem.life -= this.damage;
-                this.loaded = false;
-                this.reloadTimer = Date.now();
-                return;
-            }
-        })
+        if (ressources.trapQuantity) {
+            monsterlist.forEach((elem) => {
+                if (elem.spawned == false) return;
+                if (Math.abs(elem.position.x - this.position.x) <= this.radius && Math.abs(elem.position.y - this.position.y) <= this.radius) {
+                    elem.life -= this.damage;
+                    decTrapQte();
+                    this.loaded = false;
+                    this.reloadTimer = Date.now();
+                    return;
+                }
+            })
+        }
     }
 
     checkReload(){

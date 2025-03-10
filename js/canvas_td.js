@@ -1,7 +1,11 @@
 import { tower } from "./class/tower.js";
-import { monster } from "./class/monster.js";
 import { map_td } from "./map/map.js";
 import { traps } from "./class/traps.js";
+import { buildTower, buildTrap, decTowerQte, decTrapDispenserQte, decSurvivor } from "./hud/main_hud.js";
+import { canvasMouseX, canvasMouseY } from "./init.js";
+import { spawnDelay, nightEnd } from "./callback/day_cycle.js";
+import { incTowerPrice, incTrapeDispenserPrice } from "./callback/resources.js";
+import { towerDamage, towerReloadTime, trapDamage, trapReloadTime } from "./upgrades/upgrades.js";
 
 export const squareWidth = 50;
 export const squareHeight = 50;
@@ -10,13 +14,10 @@ export const c = canvas.getContext("2d");
 export const monsterlist = [];
 export const towerList = []; 
 export const trapList = [];
+
+const timeBeforDay = 15000;
 let spawnTimer = Date.now();
-const spawnDelay = 500;
-towerList.push(new tower({position:{x:squareWidth*4,y:squareHeight*2},radius:100,damage:1,reloadTime:1000}));
-trapList.push(new traps({position:{x:squareWidth*4, y:squareHeight*1},radius:30,damage:2,reloadTime:1500}))
-for (let i=0; i<20;i++){
-    monsterlist.push(new monster({position:{x:0, y:squareHeight},life:2,speed:3,color:'blue'}));
-}
+
 
 export function init_td() {
     //initialise canvas
@@ -30,6 +31,8 @@ export function init_td() {
         updateTower();
         updateTrap();
         updateMonster();
+        if (buildTrap) trapBuild();
+        if (buildTower) towerBuild();
     }
     
     // draw map squares
@@ -59,9 +62,15 @@ export function init_td() {
                     elem.spawned = true;
                     spawnTimer = Date.now();
                     elem.update;
+                    if (index == monsterlist.length - 1) setTimeout(callNightEnd,timeBeforDay)
                 }
             }
         })
+    }
+
+    // call nightEnd function after a delay
+    function callNightEnd(){
+        nightEnd();
     }
 
     // Update tower stats
@@ -78,4 +87,70 @@ export function init_td() {
         })
     }
     drawMap()
+}
+
+function towerBuild(){
+    if (canvasMouseX){
+        const x = Math.floor(canvasMouseX/squareWidth);
+        const y = Math.floor(canvasMouseY / squareHeight);
+        if (map_td[y][x] == 0){
+            c.fillStyle = 'brown';
+        } else {
+            c.fillStyle = 'red';
+        }
+        c.beginPath();
+        c.arc(x*squareWidth+squareWidth/2, y*squareHeight+squareHeight/2, squareWidth/2, squareHeight/2,0, Math.PI+2,false);
+        c.lineWidth = 1;
+        c.fill();
+        c.stroke();
+    }
+}
+function trapBuild(){
+    if (canvasMouseX){
+        const x = Math.floor(canvasMouseX/squareWidth);
+        const y = Math.floor(canvasMouseY / squareHeight);
+        if (map_td[y][x] == 1){
+            c.fillStyle = 'yellow';
+        } else {
+            c.fillStyle = 'red';
+        }
+        c.beginPath();
+        c.arc(x*squareWidth+squareWidth/2, y*squareHeight+squareHeight/2, squareWidth/3, squareHeight/3,0, Math.PI+2,false);
+        c.lineWidth = 1;
+        c.fill();
+        c.stroke();
+    }
+}
+
+export function towerAdd(){
+    const x = Math.floor(canvasMouseX/squareWidth);
+    const y = Math.floor(canvasMouseY / squareHeight);
+    let buildable = true;
+    if (map_td[y][x] == 0){
+        towerList.forEach((elem) => {
+            if (elem.position.x == x*squareWidth && elem.position.y == y*squareHeight) buildable = false;
+        })
+        if (buildable){
+            towerList.push(new tower({position:{x:squareWidth*x,y:squareHeight*y},radius:100,damage:towerDamage,reloadTime:towerReloadTime}));
+            decTowerQte();
+            incTowerPrice();
+            decSurvivor();
+        }
+    }
+}
+
+export function trapAdd(){
+    const x = Math.floor(canvasMouseX/squareWidth);
+    const y = Math.floor(canvasMouseY / squareHeight);
+    let buildable = true;
+    if (map_td[y][x] == 1){
+        trapList.forEach((elem) => {
+            if (elem.position.x == x*squareWidth && elem.position.y == y*squareHeight) buildable = false;
+        })
+        if (buildable){
+            trapList.push(new traps({position:{x:squareWidth*x,y:squareHeight*y},radius:30,damage:trapDamage,reloadTime:trapReloadTime}));
+            decTrapDispenserQte();
+            incTrapeDispenserPrice();
+        }
+    }
 }

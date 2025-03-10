@@ -48,7 +48,7 @@ export class tower {
             endX += (deltaX / distance) * maxLength;
             endY += (deltaY / distance) * maxLength;
         }
-        return {centerX:centerX,centerY:centerY,endX:endX,endY,endY}
+        return {centerX:centerX,centerY:centerY,endX:endX,endY:endY}
     }
 
     update(){

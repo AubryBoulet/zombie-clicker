@@ -1,4 +1,10 @@
 import { AddElement, clearElements } from "../dom/dom_management.js";
+import { initTimers, handleChange, trapRss, researchRss, trapDispenserRss, towerRss } from "../callback/resources.js";
+import { daysPassed } from "../init.js";
+import { weaponUpgrade } from "../upgrades/upgrades.js";
+import { woodNeededForTrap, woodNeededForTower } from "../callback/resources.js";
+
+export let totalSurvivor = 1;
 // counters (element displaying number of survivors on the task)
 export const counter = {
     expeditionCounter:null,
@@ -11,13 +17,13 @@ export const counter = {
 };
 // Counters values (number of survivors on the task)
 export const counterValues = {
-    expeditionCounter:0,
     woodCounter:0,
     trapCounter:0,
     foodCounter:0,
     researchCounter:0,
     trapDispenserCounter:0,
     towerCounter:0,
+    expeditionCounter:0,
 };
 // Elems (target to display rss)
 export const elems = {
@@ -38,8 +44,26 @@ export const ressources = {
      researchQuantity : 0,
      trapDispenserQuantity : 0,
      towerQuantity : 0,
-     survivorQuantity : 1,
+     survivorQuantity : totalSurvivor,
      scienceQuantity : 0,
+}
+// Prices (target to display ressources needed for actions)
+export const prices = {
+    expeditionFood:null,
+    expeditionSuccess:null,
+    foodForNight:null,
+    trapWood:null,
+    trapDispenserWood:null,
+    towerWood:null,
+}
+// Prices values (ressources needed for actions)
+export const pricesValue = {
+    expeditionFood:0,
+    expeditionSuccess:0,
+    foodForNight:totalSurvivor*10,
+    trapWood:10,
+    trapDispenserWood:woodNeededForTrap,
+    towerWood:woodNeededForTower,
 }
 // Buttons (target to the inc / dec buttons)
 export const buttons = {
@@ -58,11 +82,12 @@ export const buttons = {
     trapDispenserInc:false,
     towerDec:false,
     towerInc:false,
-    // Builders
-    buildTrap : false,
-    buildTower : false,
 }
+// Builders
+export let buildTrap = false;
+export let buildTower = false;
 
+let expeditionTimeout;
 
 export function createMainHud(){
     clearElements();
@@ -70,7 +95,8 @@ export function createMainHud(){
     link.rel = 'stylesheet';
     link.type = 'text/css';
     link.href = './js/hud/style.css';
-    makeHud()
+    makeHud();
+    initTimers();
 }
 
 function makeHud(){
@@ -89,6 +115,8 @@ function makeHud(){
     container = AddElement('div',null,'container_frame_row',hud);
     makeRssDisplayer(container);
     container = AddElement('div',null,'container_frame_row',hud);
+    makeCostDisplayer(container);
+    container = AddElement('div',null,'container_frame_row',hud);
     makeBuildButton(container);
 }
 
@@ -105,6 +133,7 @@ function makeExpedition(hud) {
     buttons.expeditionInc.dataset.target = 'expeditionCounter';
     buttons.expeditionDec.addEventListener('click',buttonDecHandler);
     buttons.expeditionInc.addEventListener('click',buttonIncHandler);
+    buttons.expeditionStart.addEventListener('click',expeditionStartHandler);
 }
 
 function makeGatherWood(hud) {
@@ -200,22 +229,40 @@ function makeCreateTower(hud){
 function makeRssDisplayer(hud){
     let mainElement; let currentElement;
     mainElement = AddElement('div','container_create_trap_dispenser','frame_hud rss',hud);
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'wood : ');
-    elems.woodElem = AddElement('span','wood_counter','frame_hud_counter',currentElement,ressources.woodQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'food : ');
-    elems.foodElem = AddElement('span','food_counter','frame_hud_counter',currentElement,ressources.foodQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'traps : ');
-    elems.trapElem = AddElement('span','trap_counter','frame_hud_counter',currentElement,ressources.trapQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'research : ');
-    elems.researchElem = AddElement('span','research_counter','frame_hud_counter',currentElement,ressources.researchQuantity.toLocaleString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'trap dispenser : ');
-    elems.trapDispenserElem = AddElement('span','trap_dispenser_counter','frame_hud_counter',currentElement,ressources.trapDispenserQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'tower : ');
-    elems.towerElem = AddElement('span','rower_counter','frame_hud_counter',currentElement,ressources.towerQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'survivor : ');
-    elems.survivorElem = AddElement('span','survivor_counter','frame_hud_counter',currentElement,ressources.survivorQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'science : ');
-    elems.scienceElem = AddElement('span','science_counter','frame_hud_counter',currentElement,ressources.scienceQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'wood :');
+    elems.woodElem = AddElement('span','wood_counter','frame_hud_counter_value',currentElement,ressources.woodQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'food :');
+    elems.foodElem = AddElement('span','food_counter','frame_hud_counter_value',currentElement,ressources.foodQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'traps :');
+    elems.trapElem = AddElement('span','trap_counter','frame_hud_counter_value',currentElement,ressources.trapQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'research :');
+    elems.researchElem = AddElement('span','research_counter','frame_hud_counter_value',currentElement,ressources.researchQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'trap dispenser :');
+    elems.trapDispenserElem = AddElement('span','trap_dispenser_counter','frame_hud_counter_value',currentElement,ressources.trapDispenserQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'tower :');
+    elems.towerElem = AddElement('span','rower_counter','frame_hud_counter_value',currentElement,ressources.towerQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'survivor :');
+    elems.survivorElem = AddElement('span','survivor_counter','frame_hud_counter_value',currentElement,ressources.survivorQuantity.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'science :');
+    elems.scienceElem = AddElement('span','science_counter','frame_hud_counter_value',currentElement,ressources.scienceQuantity.toString());
+}
+
+function makeCostDisplayer(hud){
+    let mainElement; let currentElement;
+    mainElement = AddElement('div','container_create_trap_dispenser','frame_hud rss',hud);
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'expedition food :');
+    prices.expeditionFood = AddElement('span','expedition_food','frame_hud_counter_value',currentElement,pricesValue.expeditionFood.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'expedition rate :');
+    prices.expeditionSuccess = AddElement('span','expedition_success','frame_hud_counter_value',currentElement,`${pricesValue.expeditionSuccess.toString()}%`);
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'food for night :');
+    prices.foodForNight = AddElement('span','food_for_night','frame_hud_counter_value',currentElement,pricesValue.foodForNight.toString());
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'trap :');
+    prices.trapWood = AddElement('span','trap_wood','frame_hud_counter_value',currentElement,`${pricesValue.trapWood.toString()} wood`);
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'trap dispenser :');
+    prices.trapDispenserWood = AddElement('span','trap_dispenser_wood','frame_hud_counter_value',currentElement,`${pricesValue.trapDispenserWood.toString()} wood`);
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'tower :');
+    prices.towerWood = AddElement('span','tower_cood','frame_hud_counter_value',currentElement,`${pricesValue.towerWood.toString()} wood 1 survivor`);
+
 }
 
 function makeBuildButton(hud){
@@ -226,37 +273,193 @@ function makeBuildButton(hud){
 }
 
 function trapAddHandler(){
-    if (trapDispenserQuantity == 0) return;
+    if (ressources.trapDispenserQuantity == 0) return;
     buildTrap = true;
+    buildTower = false;
 }
 
 function towerAddHandler(){
-    if (towerQuantity == 0) return;
+    if (ressources.towerQuantity == 0) return;
     buildTower = true;
+    buildTrap = false;
+}
+
+function expeditionStartHandler(){
+    if (!counterValues.expeditionCounter) return;
+    if (!expeditionTimeout){
+        if (ressources.foodQuantity >= counterValues.expeditionCounter * 10){
+            ressources.foodQuantity -= counterValues.expeditionCounter * 10;
+            elems.foodElem.textContent = ressources.foodQuantity;
+            expeditionTimeout = setTimeout(expeditionEnd,120000);
+        }
+    }
+}
+
+function expeditionEnd(){
+    expeditionTimeout = null;
+    const eventCount = 3 + daysPassed;
+    let event;
+    let fightResult;
+    let scienceFound = 0; let survivorFound = 0;
+    for (let i = 0; i < eventCount ; i++){
+        fightResult = true;
+        if (counterValues.expeditionCounter + weaponUpgrade < daysPassed){ // level of expedition too low, calculate the fight.
+            fightResult = calculateFight();
+            if (counterValues.expeditionCounter == 0) expeditionResult(0,0);
+            return;
+        }
+        if (fightResult){
+            event = Math.floor(Math.random() * 2);
+            if (event){
+                scienceFound ++;
+            } else {
+                survivorFound ++;
+            }
+        }
+    }
+    expeditionResult(scienceFound,survivorFound);
+}
+
+function calculateFight(){
+    const dice = Math.floor(Math.random()*daysPassed)+1;
+    if (dice > counterValues.expeditionCounter + weaponUpgrade){
+        counterValues.expeditionCounter --;
+        totalSurvivor --;
+        return false;
+    }
+    return true;
+}
+
+function expeditionResult(scienceFound, survivorFound){
+    ressources.survivorQuantity += counterValues.expeditionCounter + survivorFound;
+    totalSurvivor += survivorFound;
+    ressources.scienceQuantity += scienceFound;
+    counterValues.expeditionCounter = 0;
+    counter.expeditionCounter.textContent = counterValues.expeditionCounter;
+    elems.scienceElem.textContent = ressources.scienceQuantity;
+    elems.survivorElem.textContent = ressources.survivorQuantity;
+    pricesValue.foodForNight = totalSurvivor * 10;
+    prices.foodForNight.textContent = pricesValue.foodForNight;
+    calculateExpeditionFood();
+    calculateExpeditionRate();
+}
+
+export function decTrapDispenserQte(){
+    buildTrap = false;
+    ressources.trapDispenserQuantity --;
+    elems.trapDispenserElem.textContent = ressources.trapDispenserQuantity;
+}
+
+export function decTrapQte(){
+    ressources.trapQuantity --;
+    elems.trapElem.textContent = ressources.trapQuantity
+}
+
+export function decTowerQte(){
+    buildTower = false;
+    ressources.towerQuantity --;
+    elems.towerElem.textContent = ressources.towerQuantity;
+}
+
+export function decSurvivor(){
+    if (ressources.survivorQuantity){
+        ressources.survivorQuantity --;
+        elems.survivorElem.textContent = ressources.survivorQuantity;
+        totalSurvivor --;
+        if (totalSurvivor == 0){console.log("mouru")} // End of game, player have no more survivor
+        pricesValue.foodForNight = totalSurvivor * 10;
+        prices.foodForNight.textContent = pricesValue.foodForNight;
+        return true
+    }
+    return decTaskSurvivor();
+}
+
+function decTaskSurvivor(){
+    for (const prop in counterValues) {
+        if (counterValues[prop]){
+            counterValues[prop] --;
+            counter[prop].textContent = counterValues[prop];
+            totalSurvivor --;
+            if (totalSurvivor == 0){console.log("mouru")} // End of game, player have no more survivor
+            pricesValue.foodForNight = totalSurvivor * 10;
+            prices.foodForNight.textContent = pricesValue.foodForNight;
+            return true;
+        }
+    }
+    return false;
 }
 
 function buttonDecHandler(e){
-    let value = counterValues[e.currentTarget.dataset.target];
+    const element = e.currentTarget.dataset.target;
+    buildTower = false; buildTrap = false;
+    if (element == 'expeditionCounter' && expeditionTimeout) return;
+    let value = counterValues[element];
     if (value == 0) return;
-    const target = counter[e.currentTarget.dataset.target]
+    const target = counter[element]
     value --;
     counterValues[e.currentTarget.dataset.target] = value;
     target.textContent = value.toString();
     ressources.survivorQuantity ++;
     updateSurvivorCounter();
+    checkChangedElement(element);
+    if (element == 'expeditionCounter') {
+        calculateExpeditionFood();
+        calculateExpeditionRate();
+    }
 }
 
 function buttonIncHandler(e){
+    buildTower = false; buildTrap = false;
     if (!ressources.survivorQuantity) return;
-    const target = counter[e.currentTarget.dataset.target];
-    let value = counterValues[e.currentTarget.dataset.target];
+    const element = e.currentTarget.dataset.target
+    if (element == 'expeditionCounter' && expeditionTimeout ) return
+    const target = counter[element];
+    let value = counterValues[element];
     value ++;
     ressources.survivorQuantity --;
     counterValues[e.currentTarget.dataset.target] = value;
     target.textContent = value.toString();
     updateSurvivorCounter();
+    checkChangedElement(element);
+    if (element == 'expeditionCounter') {
+        calculateExpeditionFood();
+        calculateExpeditionRate();
+    }
 }
 
 function updateSurvivorCounter(){
     elems.survivorElem.textContent = ressources.survivorQuantity.toString();
+}
+
+function calculateExpeditionFood(){
+    pricesValue.expeditionFood = counterValues.expeditionCounter * 10;
+    prices.expeditionFood.textContent = pricesValue.expeditionFood;
+}
+
+function calculateExpeditionRate(){
+    let calculedRate = 0;
+    if (counterValues.expeditionCounter > 0) {
+        calculedRate = (counterValues.expeditionCounter + weaponUpgrade)/daysPassed * 100;
+        console.log(counterValues.expeditionCounter)
+        if (calculedRate > 100) calculedRate = 100;
+    }
+    pricesValue.expeditionSuccess = calculedRate;
+    prices.expeditionSuccess.textContent = `${pricesValue.expeditionSuccess.toString()}%`;
+}
+
+function checkChangedElement(element){
+    switch (element) {
+        case 'trapCounter':
+            handleChange(counterValues.trapCounter,'trap',trapRss);
+            break;
+        case 'researchCounter':
+            handleChange(counterValues.researchCounter,'research',researchRss);
+            break;
+        case 'towerCounter':
+            handleChange(counterValues.towerCounter,'tower',towerRss);
+            break;
+        case 'trapDispenserCounter':
+            handleChange(counterValues.trapDispenserCounter,'trapDispenser',trapDispenserRss);
+            break;
+    }
 }

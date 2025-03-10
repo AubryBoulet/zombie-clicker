@@ -39,6 +39,10 @@
     margin: 0;
 }
 
+.frame_hud_counter_value{
+    color: lightslategray;
+}
+
 .build_button{
     width: 30%;
     font-weight: bold;
