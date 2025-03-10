@@ -71,3 +71,14 @@ function startNightCycle() {
     elems.foodElem.textContent = ressources.foodQuantity;
 }
 
+export function resetTimer(){
+    timeBeforeNight = timeOfADay;
+    if (!dayOn){
+        nightEnd();
+    }
+    nightTimerTimeout = 0;
+    spawnDelay = 700;
+    generateZombieAtDayTimer = Date.now();
+    generateZombieAtDayDelay = 10000;
+}
+

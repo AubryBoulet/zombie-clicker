@@ -36,8 +36,6 @@ export function incDayPassed(){
 const canvasMouseMouveHandler = (e) => {
     canvasMouseX = e.clientX - canvas.offsetLeft;
     canvasMouseY = e.clientY - canvas.offsetTop;
-    // if (buildTower) towerBuild();
-    // if (buildTrap) trapBuild();
 }
 
 const canvasMouseClickHandler = (e) => {
@@ -49,4 +47,5 @@ const canvasMouseClickHandler = (e) => {
         trapAdd();
     }
 }
+
 addEventListener("DOMContentLoaded", init)

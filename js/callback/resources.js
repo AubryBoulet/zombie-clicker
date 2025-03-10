@@ -11,7 +11,7 @@ const delays = {
     trap:5000,
     research:10000,
     trapDispenser:10000,
-    tower:20000
+    tower:20000,
 }
 
 // Timers for rss calculation
@@ -158,4 +158,16 @@ export function incTowerPrice(){
     woodNeededForTower *= 2;
     pricesValue.towerWood = woodNeededForTower;
     prices.towerWood.textContent = `${woodNeededForTower} wood 1 survivor`;
+}
+
+// Reset rss needed
+export function resetRssValues(){
+    woodNeededForTower = 100;
+    woodNeededForTrap = 50;
+    delays.wood = 1000;
+    delays.food = 1000;
+    delays.trap = 5000;
+    delays.research = 10000;
+    delays.trapDispenser = 10000;
+    delays.tower = 20000;
 }

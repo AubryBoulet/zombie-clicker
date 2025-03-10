@@ -5,7 +5,7 @@ import { buildTower, buildTrap, decTowerQte, decTrapDispenserQte, decSurvivor } 
 import { canvasMouseX, canvasMouseY } from "./init.js";
 import { spawnDelay, nightEnd } from "./callback/day_cycle.js";
 import { incTowerPrice, incTrapeDispenserPrice } from "./callback/resources.js";
-import { towerDamage, towerReloadTime, trapDamage, trapReloadTime } from "./upgrades/upgrades.js";
+import { trapUpgrades, towerUpgrades } from "./upgrades/upgrades.js";
 
 export const squareWidth = 50;
 export const squareHeight = 50;
@@ -131,7 +131,7 @@ export function towerAdd(){
             if (elem.position.x == x*squareWidth && elem.position.y == y*squareHeight) buildable = false;
         })
         if (buildable){
-            towerList.push(new tower({position:{x:squareWidth*x,y:squareHeight*y},radius:100,damage:towerDamage,reloadTime:towerReloadTime}));
+            towerList.push(new tower({position:{x:squareWidth*x,y:squareHeight*y},radius:towerUpgrades.radius,damage:towerUpgrades.damage,reloadTime:towerUpgrades.reload}));
             decTowerQte();
             incTowerPrice();
             decSurvivor();
@@ -148,9 +148,15 @@ export function trapAdd(){
             if (elem.position.x == x*squareWidth && elem.position.y == y*squareHeight) buildable = false;
         })
         if (buildable){
-            trapList.push(new traps({position:{x:squareWidth*x,y:squareHeight*y},radius:30,damage:trapDamage,reloadTime:trapReloadTime}));
+            trapList.push(new traps({position:{x:squareWidth*x,y:squareHeight*y},radius:trapUpgrades.radius,damage:trapUpgrades.damage,reloadTime:trapUpgrades.reload}));
             decTrapDispenserQte();
             incTrapeDispenserPrice();
         }
     }
+}
+
+export function clearLists(){
+    monsterlist.length = 0;
+    towerList.length = 0;
+    trapList .length = 0;
 }

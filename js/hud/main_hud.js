@@ -1,8 +1,11 @@
 import { AddElement, clearElements } from "../dom/dom_management.js";
-import { initTimers, handleChange, trapRss, researchRss, trapDispenserRss, towerRss } from "../callback/resources.js";
+import { initTimers, handleChange, trapRss, researchRss, trapDispenserRss, towerRss, resetRssValues } from "../callback/resources.js";
 import { daysPassed } from "../init.js";
-import { weaponUpgrade } from "../upgrades/upgrades.js";
+import { resetUpgrades, weaponUpgrade } from "../upgrades/upgrades.js";
 import { woodNeededForTrap, woodNeededForTower } from "../callback/resources.js";
+import { createUpgradeHud } from "./upgrades_hud.js";
+import { resetTimer } from "../callback/day_cycle.js";
+import { clearLists } from "../canvas_td.js";
 
 export let totalSurvivor = 1;
 // counters (element displaying number of survivors on the task)
@@ -89,38 +92,40 @@ export let buildTower = false;
 
 let expeditionTimeout;
 
-export function createMainHud(){
+initTimers(); // Initialise wood and food intervals
+export function createMainHud(){ // Add css file and generate hud
     clearElements();
     const link = AddElement('link',null,null,document.querySelector('HEAD'))
     link.rel = 'stylesheet';
     link.type = 'text/css';
     link.href = './js/hud/style.css';
     makeHud();
-    initTimers();
 }
-
+// Call all the fonctions related to the hud building
 function makeHud(){
-    const hud = document.querySelector('#Container_hud');
+    const mainHud = document.querySelector('#Container_hud');
     let container;
-    makeExpedition(hud);
-    container = AddElement('div',null,'container_frame_row',hud);
+    makeExpedition(mainHud);
+    container = AddElement('div',null,'container_frame_row',mainHud);
     makeGatherWood(container);
     makeCreateTrap(container);
-    container = AddElement('div',null,'container_frame_row',hud);
+    container = AddElement('div',null,'container_frame_row',mainHud);
     makeGatherFood(container);
     makeCreateResearch(container);
-    container = AddElement('div',null,'container_frame_row',hud);
+    container = AddElement('div',null,'container_frame_row',mainHud);
     makeCreateTrapDispenser(container);
     makeCreateTower(container);
-    container = AddElement('div',null,'container_frame_row',hud);
+    container = AddElement('div',null,'container_frame_row',mainHud);
     makeRssDisplayer(container);
-    container = AddElement('div',null,'container_frame_row',hud);
+    container = AddElement('div',null,'container_frame_row',mainHud);
     makeCostDisplayer(container);
-    container = AddElement('div',null,'container_frame_row',hud);
+    container = AddElement('div',null,'container_frame_row',mainHud);
     makeBuildButton(container);
+    container = AddElement('div',null,'container_frame_row',mainHud);
+    makeUpgradeButton(container);
 }
 
-function makeExpedition(hud) {
+function makeExpedition(hud) { // Generate expedition related elements
     let mainElement;
     mainElement = AddElement('div','container_expedition','frame_hud',hud);
     mainElement = AddElement('div','expedition_buttons','frame_hud_button_container',mainElement);
@@ -136,7 +141,7 @@ function makeExpedition(hud) {
     buttons.expeditionStart.addEventListener('click',expeditionStartHandler);
 }
 
-function makeGatherWood(hud) {
+function makeGatherWood(hud) { // Generate wood related elements
     let mainElement;
     mainElement = AddElement('div','container_gather_wood','frame_hud',hud);
     mainElement = AddElement('div','gather_wood_buttons','frame_hud_button_container',mainElement);
@@ -151,7 +156,7 @@ function makeGatherWood(hud) {
     buttons.woodInc.addEventListener('click',buttonIncHandler);
 }
 
-function makeCreateTrap(hud){
+function makeCreateTrap(hud){ // Generate trap related elements
     let mainElement;
     mainElement = AddElement('div','container_create_trap','frame_hud',hud);
     mainElement = AddElement('div','create_trap_buttons','frame_hud_button_container',mainElement);
@@ -166,7 +171,7 @@ function makeCreateTrap(hud){
     buttons.trapInc.addEventListener('click',buttonIncHandler);
 }
 
-function makeGatherFood(hud){
+function makeGatherFood(hud){ // Generate food related elements
     let mainElement;
     mainElement = AddElement('div','container_gather_food','frame_hud',hud);
     mainElement = AddElement('div','gather_food_buttons','frame_hud_button_container',mainElement);
@@ -181,7 +186,7 @@ function makeGatherFood(hud){
     buttons.foodInc.addEventListener('click',buttonIncHandler);
 }
 
-function makeCreateResearch(hud){
+function makeCreateResearch(hud){ // Generate research related elements
     let mainElement;
     mainElement = AddElement('div','container_create_research','frame_hud',hud);
     mainElement = AddElement('div','create_research_buttons','frame_hud_button_container',mainElement);
@@ -196,7 +201,7 @@ function makeCreateResearch(hud){
     buttons.researchInc.addEventListener('click',buttonIncHandler);
 }
 
-function makeCreateTrapDispenser(hud){
+function makeCreateTrapDispenser(hud){ // Generate trap dispenser related elements
     let mainElement;
     mainElement = AddElement('div','container_create_trap_dispenser','frame_hud',hud);
     mainElement = AddElement('div','create_trap_dispenser_buttons','frame_hud_button_container',mainElement);
@@ -211,7 +216,7 @@ function makeCreateTrapDispenser(hud){
     buttons.trapDispenserInc.addEventListener('click',buttonIncHandler);
 }
 
-function makeCreateTower(hud){
+function makeCreateTower(hud){ // Generate tower related elements
     let mainElement;
     mainElement = AddElement('div','container_create_tower','frame_hud',hud);
     mainElement = AddElement('div','create_tower_buttons','frame_hud_button_container',mainElement);
@@ -226,7 +231,7 @@ function makeCreateTower(hud){
     buttons.towerInc.addEventListener('click',buttonIncHandler);
 }
 
-function makeRssDisplayer(hud){
+function makeRssDisplayer(hud){ // Generate ressources displayer related elements
     let mainElement; let currentElement;
     mainElement = AddElement('div','container_create_trap_dispenser','frame_hud rss',hud);
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'wood :');
@@ -240,14 +245,14 @@ function makeRssDisplayer(hud){
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'trap dispenser :');
     elems.trapDispenserElem = AddElement('span','trap_dispenser_counter','frame_hud_counter_value',currentElement,ressources.trapDispenserQuantity.toString());
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'tower :');
-    elems.towerElem = AddElement('span','rower_counter','frame_hud_counter_value',currentElement,ressources.towerQuantity.toString());
+    elems.towerElem = AddElement('span','tower_counter','frame_hud_counter_value',currentElement,ressources.towerQuantity.toString());
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'survivor :');
     elems.survivorElem = AddElement('span','survivor_counter','frame_hud_counter_value',currentElement,ressources.survivorQuantity.toString());
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'science :');
     elems.scienceElem = AddElement('span','science_counter','frame_hud_counter_value',currentElement,ressources.scienceQuantity.toString());
 }
 
-function makeCostDisplayer(hud){
+function makeCostDisplayer(hud){ // Generate price related elements
     let mainElement; let currentElement;
     mainElement = AddElement('div','container_create_trap_dispenser','frame_hud rss',hud);
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'expedition food :');
@@ -265,11 +270,16 @@ function makeCostDisplayer(hud){
 
 }
 
-function makeBuildButton(hud){
+function makeBuildButton(hud){ // Generate tower and trap dispenser building button
     const trapAdd = AddElement('button','place_trap_dispenser','build_button',hud,'Place a trap dispenser');
     const towerAdd = AddElement('button','place_tower','build_button',hud,'Place a tower');
     trapAdd.addEventListener('click',trapAddHandler);
     towerAdd.addEventListener('click',towerAddHandler);
+}
+
+function makeUpgradeButton(hud){ // Generate button to switch to the upgrade page
+    const upgradeButton = AddElement('button','open_upgrade','build_button',hud,'Upgrades');
+    upgradeButton.addEventListener('click',createUpgradeHud);
 }
 
 function trapAddHandler(){
@@ -366,10 +376,10 @@ export function decSurvivor(){
         ressources.survivorQuantity --;
         elems.survivorElem.textContent = ressources.survivorQuantity;
         totalSurvivor --;
-        if (totalSurvivor == 0){console.log("mouru")} // End of game, player have no more survivor
+        if (totalSurvivor == 0) death(); // End of game, player have no more survivor
         pricesValue.foodForNight = totalSurvivor * 10;
         prices.foodForNight.textContent = pricesValue.foodForNight;
-        return true
+        return true        
     }
     return decTaskSurvivor();
 }
@@ -380,7 +390,7 @@ function decTaskSurvivor(){
             counterValues[prop] --;
             counter[prop].textContent = counterValues[prop];
             totalSurvivor --;
-            if (totalSurvivor == 0){console.log("mouru")} // End of game, player have no more survivor
+            if (totalSurvivor == 0) death(); // End of game, player have no more survivor
             pricesValue.foodForNight = totalSurvivor * 10;
             prices.foodForNight.textContent = pricesValue.foodForNight;
             return true;
@@ -440,7 +450,6 @@ function calculateExpeditionRate(){
     let calculedRate = 0;
     if (counterValues.expeditionCounter > 0) {
         calculedRate = (counterValues.expeditionCounter + weaponUpgrade)/daysPassed * 100;
-        console.log(counterValues.expeditionCounter)
         if (calculedRate > 100) calculedRate = 100;
     }
     pricesValue.expeditionSuccess = calculedRate;
@@ -462,4 +471,47 @@ function checkChangedElement(element){
             handleChange(counterValues.trapDispenserCounter,'trapDispenser',trapDispenserRss);
             break;
     }
+}
+
+export function death(){
+    const mainHud = document.querySelector('#Container_main');
+    let mainElement;
+    mainElement = AddElement('div','container_death',null,mainHud);
+    AddElement('h1','death_title',null,mainElement,'You are dead !');
+    AddElement('h2','day_passed',null,mainElement,`You survived : ${daysPassed} days`);
+    const restartButton = AddElement('button','restart_button','build_button',mainElement,'Start again');
+    restartButton.addEventListener('click',resetDefaultValues);
+}
+
+function resetDefaultValues(){
+    resetRssValues();
+    resetUpgrades();
+    resetTimer();
+    clearLists();
+    // Reset counters
+    counterValues.woodCounter=0;
+    counterValues.trapCounter=0;
+    counterValues.foodCounter=0;
+    counterValues.researchCounter=0;
+    counterValues.trapDispenserCounter=0;
+    counterValues.towerCounter=0;
+    counterValues.expeditionCounter=0;
+    // Reset ressources
+    totalSurvivor = 1;
+    ressources.woodQuantity = 0;
+    ressources.trapQuantity = 0; 
+    ressources.foodQuantity = 0;
+    ressources.researchQuantity = 0;
+    ressources.trapDispenserQuantity = 0;
+    ressources.towerQuantity = 0;
+    ressources.survivorQuantity = totalSurvivor;
+    ressources.scienceQuantity = 0;
+    // Reset prices
+    pricesValue.expeditionFood = 0;
+    pricesValue.expeditionSuccess = 0;
+    pricesValue.foodForNight = totalSurvivor*10;
+    pricesValue.trapWood = 10;
+    pricesValue.trapDispenserWood = woodNeededForTrap;
+    pricesValue.towerWood = woodNeededForTower;
+    createMainHud();
 }
