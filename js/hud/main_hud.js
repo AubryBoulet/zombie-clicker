@@ -4,6 +4,7 @@ import { daysPassed, resetState } from "../init.js";
 import {  weaponUpgrade } from "../upgrades/upgrades.js";
 import { woodNeededForTrap, woodNeededForTower } from "../callback/resources.js";
 import { createUpgradeHud } from "./upgrades_hud.js";
+import { towerList } from "../canvas_td.js";
 
 export let totalSurvivor;
 // counters (element displaying number of survivors on the task)
@@ -123,6 +124,7 @@ function makeHud(){
     makeBuildButton(container);
     container = AddElement('div',null,'container_frame_row',mainHud);
     makeUpgradeButton(container);
+    calculateExpeditionRate();
 }
 
 function makeExpedition(hud) { // Generate expedition related elements
@@ -377,7 +379,7 @@ function expeditionResult(scienceFound, survivorFound){
     counter.expeditionCounter.textContent = counterValues.expeditionCounter;
     elems.scienceElem.textContent = ressources.scienceQuantity;
     elems.survivorElem.textContent = ressources.survivorQuantity;
-    pricesValue.foodForNight = totalSurvivor * 10;
+    pricesValue.foodForNight = (totalSurvivor+towerList.length) * 10;
     prices.foodForNight.textContent = pricesValue.foodForNight;
     calculateExpeditionFood();
     calculateExpeditionRate();
@@ -406,7 +408,7 @@ export function decSurvivor(){
         elems.survivorElem.textContent = ressources.survivorQuantity;
         totalSurvivor --;
         if (totalSurvivor <= 0) death(); // End of game, player have no more survivor
-        pricesValue.foodForNight = totalSurvivor * 10;
+        pricesValue.foodForNight = (totalSurvivor + towerList.length) * 10;
         prices.foodForNight.textContent = pricesValue.foodForNight;
         return true        
     }

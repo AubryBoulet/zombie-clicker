@@ -1,5 +1,5 @@
 import { nightTimer, daysPassed, incDayPassed, timeOfDay, setTimeOfDay } from "../init.js";
-import { monsterlist, squareHeight } from "../canvas_td.js";
+import { monsterlist, squareHeight, towerList } from "../canvas_td.js";
 import { monster } from "../class/monster.js";
 import { decSurvivor, elems, expeditionStarted, killExpedition, ressources, totalSurvivor} from "../hud/main_hud.js";
 
@@ -61,7 +61,7 @@ function startNightCycle() {
     timeBeforeNight = timeOfADay;
     timeOfDay.textContent = 'Night has fallen';
     if (expeditionStarted) killExpedition(); // If expedition still running when night happen
-    ressources.foodQuantity -= totalSurvivor*10 // 10 food / survivor are needed to pass the night
+    ressources.foodQuantity -= (totalSurvivor+towerList.length)*10 // 10 food / survivor are needed to pass the night
     if (ressources.foodQuantity < 0){
         const survivorToDec = Math.ceil(ressources.foodQuantity/-10);
         for (let i = 0; i < survivorToDec ; i++){
