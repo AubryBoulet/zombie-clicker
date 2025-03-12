@@ -1,10 +1,10 @@
 import { tower } from "./class/tower.js";
 import { map_td } from "./map/map.js";
 import { traps } from "./class/traps.js";
-import { buildTower, buildTrap, decTowerQte, decTrapDispenserQte, decSurvivor } from "./hud/main_hud.js";
+import { buildTower, buildTrap, decTowerQte, decTrapDispenserQte, decSurvivor, expeditionStarted, expeditionAnimation } from "./hud/main_hud.js";
 import { canvasMouseX, canvasMouseY } from "./init.js";
 import { spawnDelay, nightEnd } from "./callback/day_cycle.js";
-import { incTowerPrice, incTrapeDispenserPrice } from "./callback/resources.js";
+import { updateRessources } from "./callback/resources.js";
 import { trapUpgrades, towerUpgrades } from "./upgrades/upgrades.js";
 
 export const squareWidth = 50;
@@ -24,13 +24,20 @@ export function init_td() {
     canvas.width = map_td[0].length*squareWidth;
     canvas.height = map_td.length*squareHeight;
 
-    //Draw map
-    const drawMap = () => {
-        window.requestAnimationFrame(drawMap);
-        map_td.forEach((elem,yIndex) => elem.forEach((elem,xIndex) => drawMapSquares(elem,xIndex,yIndex)));
+    // Main loop
+    const mainLoop = () => {
+        window.requestAnimationFrame(mainLoop);
+        drawMap();
         updateTower();
         updateTrap();
         updateMonster();
+        updateRessources();
+        if (expeditionStarted) expeditionAnimation();
+    }
+
+    //Draw map
+    const drawMap = () => {
+        map_td.forEach((elem,yIndex) => elem.forEach((elem,xIndex) => drawMapSquares(elem,xIndex,yIndex)));
         if (buildTrap) trapBuild();
         if (buildTower) towerBuild();
     }
@@ -86,7 +93,7 @@ export function init_td() {
             elem.update()
         })
     }
-    drawMap()
+    mainLoop();
 }
 
 function towerBuild(){
@@ -133,7 +140,6 @@ export function towerAdd(){
         if (buildable){
             towerList.push(new tower({position:{x:squareWidth*x,y:squareHeight*y},radius:towerUpgrades.radius,damage:towerUpgrades.damage,reloadTime:towerUpgrades.reload}));
             decTowerQte();
-            incTowerPrice();
             decSurvivor();
         }
     }
@@ -150,7 +156,6 @@ export function trapAdd(){
         if (buildable){
             trapList.push(new traps({position:{x:squareWidth*x,y:squareHeight*y},radius:trapUpgrades.radius,damage:trapUpgrades.damage,reloadTime:trapUpgrades.reload}));
             decTrapDispenserQte();
-            incTrapeDispenserPrice();
         }
     }
 }

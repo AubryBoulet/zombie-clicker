@@ -54,7 +54,7 @@ function makeHud(){
     container = AddElement('div',null,'container_frame_row',hud);
     makeUpgradeElements(container,'Upgrade trap reload time',upgradeLevel.trapReload,trapUpgrades.reloadLevel,upgradeCostTarget.trapReload,upgradeCost.trapReload,'Decrease trap reloading by 5% per level',upgradeTrapReload)
     container = AddElement('div',null,'container_frame_row',hud);
-    makeUpgradeElements(container,'Upgrade Tower damage',upgradeLevel.towerDamage,towerUpgrades.damageLevel,upgradeCostTarget.towerDamage,upgradeCost.towerDamage,'Increase Tower damages by 2 per level',upgradeTowerDamage)
+    makeUpgradeElements(container,'Upgrade Tower damage',upgradeLevel.towerDamage,towerUpgrades.damageLevel,upgradeCostTarget.towerDamage,upgradeCost.towerDamage,'Increase Tower damages by 1 per level',upgradeTowerDamage)
     container = AddElement('div',null,'container_frame_row',hud);
     makeUpgradeElements(container,'Upgrade Tower radius',upgradeLevel.towerRadius,towerUpgrades.radiusLevel,upgradeCostTarget.towerRadius,upgradeCost.towerRadius,'Increase Tower radius by 5% per level',upgradeTowerRadius)
     container = AddElement('div',null,'container_frame_row',hud);

@@ -1,13 +1,11 @@
 import { AddElement, clearElements } from "../dom/dom_management.js";
-import { initTimers, handleChange, trapRss, researchRss, trapDispenserRss, towerRss, resetRssValues } from "../callback/resources.js";
-import { daysPassed } from "../init.js";
-import { resetUpgrades, weaponUpgrade } from "../upgrades/upgrades.js";
+import { initTimers } from "../callback/resources.js";
+import { daysPassed, resetState } from "../init.js";
+import {  weaponUpgrade } from "../upgrades/upgrades.js";
 import { woodNeededForTrap, woodNeededForTower } from "../callback/resources.js";
 import { createUpgradeHud } from "./upgrades_hud.js";
-import { resetTimer } from "../callback/day_cycle.js";
-import { clearLists } from "../canvas_td.js";
 
-export let totalSurvivor = 1;
+export let totalSurvivor;
 // counters (element displaying number of survivors on the task)
 export const counter = {
     expeditionCounter:null,
@@ -89,8 +87,10 @@ export const buttons = {
 // Builders
 export let buildTrap = false;
 export let buildTower = false;
-
+export let expeditionStarted = false;
 let expeditionTimeout;
+const expeditionDuration = 120000;
+
 
 initTimers(); // Initialise wood and food intervals
 export function createMainHud(){ // Add css file and generate hud
@@ -246,7 +246,7 @@ function makeRssDisplayer(hud){ // Generate ressources displayer related element
     elems.trapDispenserElem = AddElement('span','trap_dispenser_counter','frame_hud_counter_value',currentElement,ressources.trapDispenserQuantity.toString());
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'tower :');
     elems.towerElem = AddElement('span','tower_counter','frame_hud_counter_value',currentElement,ressources.towerQuantity.toString());
-    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'survivor :');
+    currentElement = AddElement('p',null,'frame_hud_info',mainElement,'idle survivor :');
     elems.survivorElem = AddElement('span','survivor_counter','frame_hud_counter_value',currentElement,ressources.survivorQuantity.toString());
     currentElement = AddElement('p',null,'frame_hud_info',mainElement,'science :');
     elems.scienceElem = AddElement('span','science_counter','frame_hud_counter_value',currentElement,ressources.scienceQuantity.toString());
@@ -296,18 +296,37 @@ function towerAddHandler(){
 
 function expeditionStartHandler(){
     if (!counterValues.expeditionCounter) return;
-    if (!expeditionTimeout){
+    if (!expeditionStarted){
         if (ressources.foodQuantity >= counterValues.expeditionCounter * 10){
             ressources.foodQuantity -= counterValues.expeditionCounter * 10;
             elems.foodElem.textContent = ressources.foodQuantity;
-            expeditionTimeout = setTimeout(expeditionEnd,120000);
+            expeditionTimeout = Date.now();
+            expeditionStarted = true;
+            buttons.expeditionStart.textContent = 'Expedition started'
         }
     }
 }
 
+export function expeditionAnimation(){
+    const element = document.querySelector('#container_expedition')
+    if (!element) return;
+    const jobProgress = Math.floor((Date.now() - expeditionTimeout)/expeditionDuration * 100)
+    element.style.background = `linear-gradient(to right, green ${jobProgress}%, transparent ${jobProgress}%)`
+    if (Date.now() - expeditionTimeout >= expeditionDuration) expeditionEnd();
+}
+
+export function killExpedition(){
+    totalSurvivor -= counterValues.expeditionCounter;
+    counterValues.expeditionCounter = 0;
+    expeditionEnd();
+}
+
 function expeditionEnd(){
-    expeditionTimeout = null;
+    expeditionTimeout = Date.now();
+    expeditionAnimation();
+    buttons.expeditionStart.textContent = 'Start expedition'
     const eventCount = 3 + daysPassed;
+    expeditionStarted = false;
     let event;
     let fightResult;
     let scienceFound = 0; let survivorFound = 0;
@@ -331,6 +350,7 @@ function expeditionEnd(){
 }
 
 function calculateFight(){
+    if (counterValues.expeditionCounter == 0) return false
     const dice = Math.floor(Math.random()*daysPassed)+1;
     if (dice > counterValues.expeditionCounter + weaponUpgrade){
         counterValues.expeditionCounter --;
@@ -411,7 +431,6 @@ function buttonDecHandler(e){
     target.textContent = value.toString();
     ressources.survivorQuantity ++;
     updateSurvivorCounter();
-    checkChangedElement(element);
     if (element == 'expeditionCounter') {
         calculateExpeditionFood();
         calculateExpeditionRate();
@@ -430,7 +449,6 @@ function buttonIncHandler(e){
     counterValues[e.currentTarget.dataset.target] = value;
     target.textContent = value.toString();
     updateSurvivorCounter();
-    checkChangedElement(element);
     if (element == 'expeditionCounter') {
         calculateExpeditionFood();
         calculateExpeditionRate();
@@ -456,22 +474,6 @@ function calculateExpeditionRate(){
     prices.expeditionSuccess.textContent = `${pricesValue.expeditionSuccess.toString()}%`;
 }
 
-function checkChangedElement(element){
-    switch (element) {
-        case 'trapCounter':
-            handleChange(counterValues.trapCounter,'trap',trapRss);
-            break;
-        case 'researchCounter':
-            handleChange(counterValues.researchCounter,'research',researchRss);
-            break;
-        case 'towerCounter':
-            handleChange(counterValues.towerCounter,'tower',towerRss);
-            break;
-        case 'trapDispenserCounter':
-            handleChange(counterValues.trapDispenserCounter,'trapDispenser',trapDispenserRss);
-            break;
-    }
-}
 
 export function death(){
     const mainHud = document.querySelector('#Container_main');
@@ -480,14 +482,10 @@ export function death(){
     AddElement('h1','death_title',null,mainElement,'You are dead !');
     AddElement('h2','day_passed',null,mainElement,`You survived : ${daysPassed} days`);
     const restartButton = AddElement('button','restart_button','build_button',mainElement,'Start again');
-    restartButton.addEventListener('click',resetDefaultValues);
+    restartButton.addEventListener('click',resetState());
 }
 
-function resetDefaultValues(){
-    resetRssValues();
-    resetUpgrades();
-    resetTimer();
-    clearLists();
+export function resetDefaultValues(){
     // Reset counters
     counterValues.woodCounter=0;
     counterValues.trapCounter=0;
@@ -497,7 +495,7 @@ function resetDefaultValues(){
     counterValues.towerCounter=0;
     counterValues.expeditionCounter=0;
     // Reset ressources
-    totalSurvivor = 1;
+    totalSurvivor = 10;
     ressources.woodQuantity = 0;
     ressources.trapQuantity = 0; 
     ressources.foodQuantity = 0;
@@ -510,8 +508,11 @@ function resetDefaultValues(){
     pricesValue.expeditionFood = 0;
     pricesValue.expeditionSuccess = 0;
     pricesValue.foodForNight = totalSurvivor*10;
-    pricesValue.trapWood = 10;
+    pricesValue.trapWood = 1;
     pricesValue.trapDispenserWood = woodNeededForTrap;
     pricesValue.towerWood = woodNeededForTower;
+    // Clear expedition
+    if (expeditionTimeout) clearTimeout(expeditionTimeout);
+    expeditionStarted = false;
     createMainHud();
 }

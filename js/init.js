@@ -1,7 +1,9 @@
-import  { init_td, trapAdd, canvas, towerAdd }  from "./canvas_td.js";
-import { createMainHud } from "./hud/main_hud.js";
+import  { init_td, trapAdd, canvas, towerAdd, clearLists }  from "./canvas_td.js";
+import { createMainHud, resetDefaultValues } from "./hud/main_hud.js";
 import { buildTower, buildTrap } from "./hud/main_hud.js";
-import { timeOfADay } from "./callback/day_cycle.js";
+import { resetTimer, timeOfADay } from "./callback/day_cycle.js";
+import { resetRssValues } from "./callback/resources.js";
+import { resetUpgrades } from "./upgrades/upgrades.js";
 
 export let canvasMouseX;
 export let canvasMouseY;
@@ -19,8 +21,13 @@ const init = () => {
 }
 
 // Set games variables to initial values
-const resetState = () => {
+export const resetState = () => {
     daysPassed = 0;
+    resetDefaultValues();
+    resetRssValues();
+    resetUpgrades();
+    resetTimer();
+    clearLists();
 }
 
 export function setTimeOfDay(){

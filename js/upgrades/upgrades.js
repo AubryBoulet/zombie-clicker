@@ -16,7 +16,7 @@ export const towerUpgrades = {
     radiusLevel:0,
     reloadLevel:0,
     damage:2,
-    radius:200,
+    radius:100,
     reload:3000,
 }
 

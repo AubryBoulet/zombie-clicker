@@ -1,5 +1,4 @@
-import { tower } from "../class/tower.js";
-import { counterValues, ressources, elems, prices, pricesValue } from "../hud/main_hud.js";
+import { counterValues, ressources, elems, prices, pricesValue, counter } from "../hud/main_hud.js";
 import { dayOn } from "./day_cycle.js";
 
 export let woodNeededForTrap = 50;
@@ -21,41 +20,27 @@ const timers = {
     trap:null,
     research:null,
     trapDispenser:null,
-    tower:null
+    tower:null,
 } 
 
-// Time when timeOut are initiated
-const dateOfTimers = {
+export const workedTime = {
     trap:null,
     research:null,
     trapDispenser:null,
-    tower:null
+    tower:null,
+}
+
+// Is building started
+const workStarted = {
+    trap:false,
+    research:false,
+    trapDispenser:false,
+    tower:false,
 }
 
 export function initTimers(){
     timers.wood = setInterval(woodRss, delays.wood);
     timers.food = setInterval(foodRss, delays.food);
-}
-
-/**
- * Update timeout for rss counter
- * @param {HTMLElement} - counter to update
- * @param {string} - counter name (corresponding to the objet timers element)
- * @param {Function} - the callback to call for the setTimeOut
- */
-export function handleChange(value, timer, callback){
-    if (value == 0 && timers[timer]) {
-        clearTimeout(timers[timer]);
-        return
-    }
-    if (timers[timer]){
-        clearTimeout(timers[timer]);
-        const newTimer = delays[timer]/value-(Date.now()-dateOfTimers[timer]);
-        timers[timer] = setTimeout(callback, newTimer);
-        return
-    }
-    dateOfTimers[timer] = Date.now();
-    timers[timer] = setTimeout(callback,delays.trap);
 }
 
 // Check if survivors work on wood and calculate wood rss
@@ -77,73 +62,136 @@ function foodRss(){
 }
 
 // Check if survivors work on trap and calculate traps rss
-export function trapRss(){
+function trapRss(){
     if (!dayOn) return;
-    const woodNeeded = 10;
-    if (ressources.woodQuantity >= woodNeeded) {
-        if (counterValues.trapCounter > 0) {
-            // Add trap to rss
+    if (!counterValues.trapCounter) {
+        if (workStarted.trap) timers.trap = Date.now();
+        return;
+    }
+    const woodNeeded = 10
+    if (workStarted.trap){
+        workedTime.trap += (Date.now() - timers.trap) * counterValues.trapCounter;
+        timers.trap = Date.now();
+        if (workedTime.trap >= delays.trap){
             ressources.trapQuantity ++;
             elems.trapElem.textContent = ressources.trapQuantity;
-            // Remove wood from rss
-            ressources.woodQuantity -= woodNeeded;
-            elems.woodElem.textContent = ressources.woodQuantity;
+            workStarted.trap = false;
+            workedTime.trap = 0;
         }
+        updateBackGround(document.querySelector('#container_create_trap'),workedTime.trap,delays.trap);
+        return;
+    } 
+    if (ressources.woodQuantity >= woodNeeded){
+        ressources.woodQuantity -= woodNeeded;
+        elems.woodElem.textContent = ressources.woodQuantity;
+        workStarted.trap = true;
+        timers.trap = Date.now();
+        workedTime.trap = 0;
     }
-    // Set timer before calling back the function
-    dateOfTimers.trap = Date.now();
-    timers.trap = setTimeout(trapRss, delays.trap / counterValues.trapCounter);    
 }
 
 // Check if survivors work on research and calculate research rss
-export function researchRss(){
+function researchRss(){
     if (!dayOn) return;
-    if (ressources.scienceQuantity) {
-        if (counterValues.researchCounter > 0) {
-            // Add research to rss
+    if (!counterValues.researchCounter) {
+        if (workStarted.research) timers.research = Date.now();
+        return;
+    }
+    if (workStarted.research){
+        workedTime.research += (Date.now() - timers.research) * counterValues.researchCounter;
+        timers.research = Date.now();
+        if (workedTime.research >= delays.research){
             ressources.researchQuantity ++;
             elems.researchElem.textContent = ressources.researchQuantity;
-            // Remove science from rss
-            ressources.scienceQuantity --;
-            elems.scienceElem.textContent = ressources.scienceQuantity;
+            workStarted.research = false;
+            workedTime.research = 0;
         }
+        updateBackGround(document.querySelector('#container_create_research'),workedTime.research,delays.research);
+        return;
+    } 
+    if (ressources.scienceQuantity >= 1){
+        ressources.scienceQuantity -= 1;
+        elems.scienceElem.textContent = ressources.scienceQuantity;
+        workStarted.research = true;
+        timers.research = Date.now();
+        workedTime.research = 0;
     }
-    dateOfTimers.research = Date.now();
-    timers.research = setTimeout(researchRss, delays.research / counterValues.researchCounter);
 }
 
 // Check if survivors work on trap dispenser
-export function trapDispenserRss(){
+function trapDispenserRss(){
     if (!dayOn) return;
-    if (ressources.woodQuantity >= woodNeededForTrap){
-        if (counterValues.trapDispenserCounter > 0) {
-            // Add trap dispenser to rss
+    if (!counterValues.trapDispenserCounter) {
+        if (workStarted.trapDispenser) timers.trapDispenser = Date.now();
+        return;
+    }
+    if (workStarted.trapDispenser){
+        workedTime.trapDispenser += (Date.now() - timers.trapDispenser) * counterValues.trapDispenserCounter;
+        timers.trapDispenser = Date.now();
+        if (workedTime.trapDispenser >= delays.trapDispenser){
             ressources.trapDispenserQuantity ++;
             elems.trapDispenserElem.textContent = ressources.trapDispenserQuantity;
-            // Remove wood from rss
-            ressources.woodQuantity -= woodNeededForTrap;
-            elems.woodElem.textContent = ressources.woodQuantity;
+            workStarted.trapDispenser = false;
+            workedTime.trapDispenser = 0;
+            survivorEndTask('trapDispenserCounter');
+            incTrapeDispenserPrice();
         }
+        updateBackGround(document.querySelector('#container_create_trap_dispenser'),workedTime.trapDispenser,delays.trapDispenser);
+        return;
+    } 
+    if (ressources.woodQuantity >= woodNeededForTrap){
+        ressources.woodQuantity -= woodNeededForTrap;
+        elems.woodElem.textContent = ressources.woodQuantity;
+        workStarted.trapDispenser = true;
+        timers.trapDispenser = Date.now();
+        workedTime.trapDispenser = 0;
     }
-    dateOfTimers.trapDispenser = Date.now();
-    timers.trapDispenser = setTimeout(trapDispenserRss, delays.trapDispenser / counterValues.trapDispenserCounter);
 }
 
 // Check if survivors work on tower
-export function towerRss(){
+function towerRss(){
     if (!dayOn) return;
-    if (ressources.woodQuantity >= woodNeededForTower){
-        if (counterValues.towerCounter > 0) {
-            // Add tower to rss
+    if (!counterValues.towerCounter) {
+        if (workStarted.tower) timers.tower = Date.now();
+        return;
+    }
+    if (workStarted.tower){
+        workedTime.tower += (Date.now() - timers.tower) * counterValues.towerCounter;
+        timers.tower = Date.now();
+        if (workedTime.tower >= delays.tower){
             ressources.towerQuantity ++;
             elems.towerElem.textContent = ressources.towerQuantity;
-            // Remove wood from rss
-            ressources.woodQuantity -= woodNeededForTower;
-            elems.woodElem.textContent = ressources.woodQuantity;
+            workStarted.tower = false;
+            workedTime.tower = 0;
+            survivorEndTask('towerCounter');
+            incTowerPrice();
         }
+        updateBackGround(document.querySelector('#container_create_tower'),workedTime.tower,delays.tower);
+        return;
+    } 
+    if (ressources.woodQuantity >= woodNeededForTower){
+        ressources.woodQuantity -= woodNeededForTower;
+        elems.woodElem.textContent = ressources.woodQuantity;
+        workStarted.tower = true;
+        timers.tower = Date.now();
+        workedTime.tower = 0;
     }
-    dateOfTimers.tower = Date.now();
-    timers.tower = setTimeout(towerRss, delays.tower / counterValues.towerCounter);
+}
+
+// Move worker on tower or dispenser to idle
+function survivorEndTask(task){
+    ressources.survivorQuantity += counterValues[task];
+    counterValues[task] = 0;
+    counter[task].textContent = counterValues[task];
+    elems.survivorElem.textContent = ressources.survivorQuantity;
+}
+
+// Update ressources
+export function updateRessources(){
+    trapRss();
+    researchRss();
+    trapDispenserRss();
+    towerRss();
 }
 
 // Increase price of a trap dispenser
@@ -160,6 +208,13 @@ export function incTowerPrice(){
     prices.towerWood.textContent = `${woodNeededForTower} wood 1 survivor`;
 }
 
+// Update background for working jobs statment
+export function updateBackGround(element,currentValue,targetValue){
+    if (!element) return;
+    const jobProgress = Math.floor(currentValue / targetValue * 100)
+    element.style.background = `linear-gradient(to right, green ${jobProgress}%, transparent ${jobProgress}%)`
+}
+
 // Reset rss needed
 export function resetRssValues(){
     woodNeededForTower = 100;
@@ -170,4 +225,8 @@ export function resetRssValues(){
     delays.research = 10000;
     delays.trapDispenser = 10000;
     delays.tower = 20000;
+    workStarted.research = false;
+    workStarted.tower = false;
+    workStarted.trap = false;
+    workStarted.trapDispenser = false;
 }
