@@ -495,7 +495,7 @@ export function resetDefaultValues(){
     counterValues.towerCounter=0;
     counterValues.expeditionCounter=0;
     // Reset ressources
-    totalSurvivor = 10;
+    totalSurvivor = 1;
     ressources.woodQuantity = 0;
     ressources.trapQuantity = 0; 
     ressources.foodQuantity = 0;
@@ -508,7 +508,7 @@ export function resetDefaultValues(){
     pricesValue.expeditionFood = 0;
     pricesValue.expeditionSuccess = 0;
     pricesValue.foodForNight = totalSurvivor*10;
-    pricesValue.trapWood = 1;
+    pricesValue.trapWood = 10;
     pricesValue.trapDispenserWood = woodNeededForTrap;
     pricesValue.towerWood = woodNeededForTower;
     // Clear expedition
