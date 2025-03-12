@@ -121,6 +121,6 @@ export function resetUpgrades(){
     towerUpgrades.radiusLevel = 0;
     towerUpgrades.reloadLevel = 0;
     towerUpgrades.damage = 2;
-    towerUpgrades.radius = 200;
+    towerUpgrades.radius = 100;
     towerUpgrades.reload = 3000;
 }
