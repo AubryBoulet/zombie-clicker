@@ -4,6 +4,7 @@ import { daysPassed, resetState } from "../init.js";
 import {  weaponUpgrade } from "../upgrades/upgrades.js";
 import { woodNeededForTrap, woodNeededForTower } from "../callback/resources.js";
 import { createUpgradeHud } from "./upgrades_hud.js";
+import { towerList } from "../canvas_td.js";
 
 export let totalSurvivor;
 // counters (element displaying number of survivors on the task)
@@ -90,7 +91,7 @@ export let buildTower = false;
 export let expeditionStarted = false;
 let expeditionTimeout;
 const expeditionDuration = 120000;
-
+let expeditionCount;
 
 initTimers(); // Initialise wood and food intervals
 export function createMainHud(){ // Add css file and generate hud
@@ -123,6 +124,7 @@ function makeHud(){
     makeBuildButton(container);
     container = AddElement('div',null,'container_frame_row',mainHud);
     makeUpgradeButton(container);
+    calculateExpeditionRate();
 }
 
 function makeExpedition(hud) { // Generate expedition related elements
@@ -327,15 +329,23 @@ function expeditionEnd(){
     buttons.expeditionStart.textContent = 'Start expedition'
     const eventCount = 3 + daysPassed;
     expeditionStarted = false;
+    if (expeditionCount == 0) {
+        expeditionCount ++;
+        expeditionResult(1,2);
+        return;
+    }
     let event;
     let fightResult;
     let scienceFound = 0; let survivorFound = 0;
     for (let i = 0; i < eventCount ; i++){
         fightResult = true;
-        if (counterValues.expeditionCounter + weaponUpgrade < daysPassed){ // level of expedition too low, calculate the fight.
+        if (counterValues.expeditionCounter + weaponUpgrade < expeditionCount){ // level of expedition too low, calculate the fight.
             fightResult = calculateFight();
-            if (counterValues.expeditionCounter == 0) expeditionResult(0,0);
-            return;
+            if (counterValues.expeditionCounter == 0) {
+                expeditionResult(0,0)
+                expeditionCount ++;
+                return;
+            }
         }
         if (fightResult){
             event = Math.floor(Math.random() * 2);
@@ -346,12 +356,13 @@ function expeditionEnd(){
             }
         }
     }
+    expeditionCount ++;
     expeditionResult(scienceFound,survivorFound);
 }
 
 function calculateFight(){
     if (counterValues.expeditionCounter == 0) return false
-    const dice = Math.floor(Math.random()*daysPassed)+1;
+    const dice = Math.floor(Math.random()*expeditionCount)+1;
     if (dice > counterValues.expeditionCounter + weaponUpgrade){
         counterValues.expeditionCounter --;
         totalSurvivor --;
@@ -368,7 +379,7 @@ function expeditionResult(scienceFound, survivorFound){
     counter.expeditionCounter.textContent = counterValues.expeditionCounter;
     elems.scienceElem.textContent = ressources.scienceQuantity;
     elems.survivorElem.textContent = ressources.survivorQuantity;
-    pricesValue.foodForNight = totalSurvivor * 10;
+    pricesValue.foodForNight = (totalSurvivor+towerList.length) * 10;
     prices.foodForNight.textContent = pricesValue.foodForNight;
     calculateExpeditionFood();
     calculateExpeditionRate();
@@ -396,8 +407,8 @@ export function decSurvivor(){
         ressources.survivorQuantity --;
         elems.survivorElem.textContent = ressources.survivorQuantity;
         totalSurvivor --;
-        if (totalSurvivor == 0) death(); // End of game, player have no more survivor
-        pricesValue.foodForNight = totalSurvivor * 10;
+        if (totalSurvivor <= 0) death(); // End of game, player have no more survivor
+        pricesValue.foodForNight = (totalSurvivor + towerList.length) * 10;
         prices.foodForNight.textContent = pricesValue.foodForNight;
         return true        
     }
@@ -422,7 +433,7 @@ function decTaskSurvivor(){
 function buttonDecHandler(e){
     const element = e.currentTarget.dataset.target;
     buildTower = false; buildTrap = false;
-    if (element == 'expeditionCounter' && expeditionTimeout) return;
+    if (element == 'expeditionCounter' && expeditionStarted) return;
     let value = counterValues[element];
     if (value == 0) return;
     const target = counter[element]
@@ -441,7 +452,7 @@ function buttonIncHandler(e){
     buildTower = false; buildTrap = false;
     if (!ressources.survivorQuantity) return;
     const element = e.currentTarget.dataset.target
-    if (element == 'expeditionCounter' && expeditionTimeout ) return
+    if (element == 'expeditionCounter' && expeditionStarted ) return
     const target = counter[element];
     let value = counterValues[element];
     value ++;
@@ -467,7 +478,7 @@ function calculateExpeditionFood(){
 function calculateExpeditionRate(){
     let calculedRate = 0;
     if (counterValues.expeditionCounter > 0) {
-        calculedRate = (counterValues.expeditionCounter + weaponUpgrade)/daysPassed * 100;
+        calculedRate = (counterValues.expeditionCounter + weaponUpgrade)/expeditionCount * 100;
         if (calculedRate > 100) calculedRate = 100;
     }
     pricesValue.expeditionSuccess = calculedRate;
@@ -482,7 +493,7 @@ export function death(){
     AddElement('h1','death_title',null,mainElement,'You are dead !');
     AddElement('h2','day_passed',null,mainElement,`You survived : ${daysPassed} days`);
     const restartButton = AddElement('button','restart_button','build_button',mainElement,'Start again');
-    restartButton.addEventListener('click',resetState());
+    restartButton.addEventListener('click',resetState);
 }
 
 export function resetDefaultValues(){
@@ -512,6 +523,7 @@ export function resetDefaultValues(){
     pricesValue.trapDispenserWood = woodNeededForTrap;
     pricesValue.towerWood = woodNeededForTower;
     // Clear expedition
+    expeditionCount = 0;
     if (expeditionTimeout) clearTimeout(expeditionTimeout);
     expeditionStarted = false;
     createMainHud();
