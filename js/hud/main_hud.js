@@ -493,7 +493,7 @@ export function death(){
     AddElement('h1','death_title',null,mainElement,'You are dead !');
     AddElement('h2','day_passed',null,mainElement,`You survived : ${daysPassed} days`);
     const restartButton = AddElement('button','restart_button','build_button',mainElement,'Start again');
-    restartButton.addEventListener('click',resetState());
+    restartButton.addEventListener('click',resetState);
 }
 
 export function resetDefaultValues(){
